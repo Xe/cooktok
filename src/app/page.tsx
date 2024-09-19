@@ -1,55 +1,131 @@
+"use client";
+
 import Image from "next/image";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+import {
+  getVideoInfo,
+  makeRecipe,
+  Recipe,
+  VideoInfo,
+} from "@/actions/summarize-video";
+import { useEffect, useState } from "react";
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+export default function Home() {
+  const [videoURL, setVideoURL] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+
+  useEffect(() => {
+    if (videoURL === "") {
+      setLoading(false);
+      setError("No video URL provided");
+    }
+    getVideoInfo(videoURL!).then(setVideoInfo);
+  }, [loading]);
+
+  useEffect(() => {
+    if (videoInfo == null) {
+      return;
+    }
+
+    makeRecipe({
+      description: videoInfo!.description,
+      subtitles: videoInfo!.subtitles,
+    }).then((r) => {
+      setLoading(false);
+      setRecipe(r);
+    });
+  }, [videoInfo]);
+
+  const reset = () => {
+    setLoading(false);
+    setRecipe(null);
+    setVideoInfo(null);
+    setVideoURL("");
+  };
+
+  // const videoInfo = await getVideoInfo(
+  //   "https://www.tiktok.com/@cookinginthemidwest/video/7412645278035070250"
+  // );
+
+  // const recipe = await makeRecipe({
+  //   description: videoInfo.description,
+  //   subtitles: videoInfo.subtitles,
+  // });
+
+  return (
+    <div className="min-h-screen sm:p-20">
+      <main
+        id="main"
+        className="flex flex-col row-start-2 items-center sm:items-start"
+      >
+        <div className="gap-4 dont-print">
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Video URL
+          </label>
+          <input
+            autoComplete="off"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            type="text"
+            placeholder="https://tiktok.com/..."
+            onChange={(e) => setVideoURL(e.target.value)}
+          />
+          <button
+            disabled={loading}
+            type="button"
+            className="my-2 rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-600 disabled:hover:bg-gray-500"
+            onClick={() => setLoading(true)}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Get recipe
+          </button>
         </div>
+        {loading && (
+          <div
+            className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-e-transparent align-[-0.125em] text-surface motion-reduce:animate-[spin_1.5s_linear_infinite] dark:text-white"
+            role="status"
+          >
+            <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
+              Loading...
+            </span>
+          </div>
+        )}
+        {recipe !== null && (
+          <div
+            className="prose prose-h1:mb-4 prose-h2:my-2 prose-p:my-2"
+            id="printarea"
+          >
+            <h1>{recipe.title}</h1>
+            <p>
+              {recipe.servings === 1 ? (
+                <>1 serving</>
+              ) : (
+                <>{recipe.servings} servings</>
+              )}{" "}
+              -- by{" "}
+              <a href={videoInfo!.uploader.url} className="underline">
+                {"@"}
+                {videoInfo!.uploader.id}
+              </a>
+            </p>
+            {recipe.notes !== undefined && <p>{recipe.notes}</p>}
+            <h2>Ingredients</h2>
+            <ul>
+              {recipe.ingredients.map((i) => (
+                <li key={i}>{i}</li>
+              ))}
+            </ul>
+            <h2>Steps</h2>
+            <ol>
+              {recipe.steps.map((i) => (
+                <li key={i}>{i}</li>
+              ))}
+            </ol>
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
+      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center dont-print">
         <a
           className="flex items-center gap-2 hover:underline hover:underline-offset-4"
           href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"

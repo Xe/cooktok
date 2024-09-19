@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  font-family: var(--font-inter);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-podkova);
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -23,5 +36,11 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@media print {
+  .dont-print {
+    display: none;
   }
 }
