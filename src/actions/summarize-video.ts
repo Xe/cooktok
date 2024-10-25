@@ -7,7 +7,7 @@ import { $ } from "execa";
 import { YtDlp, YtDlpConfig } from "@yemreak/yt-dlp";
 
 const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
+  baseURL: process.env.OPENAI_URL,
   apiKey: process.env.OPENAI_TOKEN,
   defaultHeaders: {
     "X-Title": "Cooktok", // Optional. Shows in rankings on openrouter.ai.
@@ -220,7 +220,11 @@ export interface VideoInfo {
   subtitles: string;
 };
 
-export const getVideoInfo = async (videoURL: string): Promise<VideoInfo> => {
+export const getVideoInfo = async (videoURL: string): Promise<VideoInfo | null> => {
+  if (videoURL === "") {
+    return null;
+  }
+
   const config: YtDlpConfig = { workdir: "./var" }
   const ytDlp = new YtDlp(config);
   await ytDlp.downloadLatestReleaseIfNotExists();
